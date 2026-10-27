@@ -18,7 +18,10 @@
   <form id="login" class="panel login" hidden>
     <h2>Accesso genitori</h2>
     <p id="login-note" class="note">Inserisci la password impostata nel file <code>.env</code> (<code>ADMIN_PASSWORD</code>).</p>
-    <input id="password" type="password" autocomplete="current-password" placeholder="Password" required>
+    <span class="secret">
+      <input id="password" type="password" autocomplete="current-password" placeholder="Password" required>
+      <button type="button" class="reveal" data-for="password" aria-label="Mostra la password" aria-pressed="false">👁️</button>
+    </span>
     <button class="btn primary">Entra</button>
     <p id="login-error" class="error" hidden></p>
   </form>
@@ -87,7 +90,10 @@
         <input id="jf-url" placeholder="http://host:8096" autocomplete="off">
       </label>
       <label>Chiave API
-        <input id="jf-key" type="password" autocomplete="new-password">
+        <span class="secret">
+          <input id="jf-key" type="password" autocomplete="new-password">
+          <button type="button" class="reveal" data-for="jf-key" aria-label="Mostra la chiave" aria-pressed="false">👁️</button>
+        </span>
       </label>
       <label class="check"><input id="jf-key-clear" type="checkbox"> Cancella la chiave salvata (torna a quella del <code>.env</code>)</label>
       <label>Utente

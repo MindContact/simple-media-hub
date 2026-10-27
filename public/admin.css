@@ -72,6 +72,21 @@ body.admin {
 }
 
 .admin label.btn { display: inline-flex; margin: 0; }
+
+.secret { position: relative; display: block; }
+.secret input { padding-right: 52px !important; }
+.reveal {
+  position: absolute;
+  right: 6px;
+  bottom: 4px;
+  padding: 4px 8px;
+  border: 0;
+  background: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.reveal:hover, .reveal[aria-pressed=true] { opacity: 1; }
 .btn:hover:not(:disabled) { filter: brightness(1.2); }
 .btn:disabled { opacity: 0.35; cursor: default; }
 .btn.primary { background: var(--accent); }

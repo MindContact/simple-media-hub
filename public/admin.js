@@ -31,6 +31,18 @@ function toast(text) {
   toast.timer = setTimeout(() => { t.hidden = true; }, 3500);
 }
 
+// 👁️ next to a password field shows what is being typed.
+for (const b of document.querySelectorAll('.reveal')) {
+  b.addEventListener('click', () => {
+    const input = $(b.dataset.for);
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    b.setAttribute('aria-pressed', String(show));
+    b.textContent = show ? '🙈' : '👁️';
+    input.focus();
+  });
+}
+
 // --- Login
 
 function showLogin(message) {
@@ -47,6 +59,7 @@ $('login').addEventListener('submit', async e => {
   try {
     await api('/api/admin/login', json('POST', { password: $('password').value }));
     $('password').value = '';
+    $('password').type = 'password';
     await open();
   } catch (err) {
     $('login-error').textContent = err.message;
@@ -184,6 +197,10 @@ function fillForm() {
   $('jf-url').value = draft.jellyfinUrl;
   $('jf-url').placeholder = saved.env.jellyfinUrl;
   $('jf-key').value = '';
+  // Saving hides the key again.
+  $('jf-key').type = 'password';
+  document.querySelector('[data-for=jf-key]').textContent = '👁️';
+  document.querySelector('[data-for=jf-key]').setAttribute('aria-pressed', 'false');
   $('jf-key').placeholder = saved.apiKeySet ? '•••••• salvata (scrivi per cambiarla)'
     : saved.env.apiKeySet ? 'dal .env (scrivi per cambiarla)' : 'nessuna chiave impostata';
   $('jf-key-clear').checked = false;
