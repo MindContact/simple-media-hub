@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Pong</title>
+  <link rel="stylesheet" href="../shell.css">
+  <style>
+    body { background: #000; }
+    #game { display: block; width: min(96vw, 128vh); height: min(72vw, 96vh); }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <script src="../shell.js"></script>
+  <script src="game.js"></script>
+  <script src="pong.js"></script>
+  <script>
+    Game.ready(function() {
+      Game.start('game', Pong, { sound: true, stats: false, footprints: false, predictions: false });
+    });
+  </script>
+</body>
+</html>

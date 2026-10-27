@@ -1,0 +1,32 @@
+{
+  "name": "simple-media-hub",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kid-friendly TV home screen for Jellyfin, with offline games and an admin page",
+  "keywords": [
+    "jellyfin",
+    "kids",
+    "kiosk",
+    "tv",
+    "games",
+    "pwa"
+  ],
+  "author": "Roberto Luttino",
+  "license": "AGPL-3.0-or-later",
+  "homepage": "https://github.com/MindContact/simple-media-hub",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MindContact/simple-media-hub.git"
+  },
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "hls.js": "^1.6.0"
+  }
+}

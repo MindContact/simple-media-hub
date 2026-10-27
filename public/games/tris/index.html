@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Tris</title>
+  <link rel="stylesheet" href="../shell.css">
+  <style>
+    .cell { --cell: 22vmin; }
+    .cell.win { background: #2ecc71; }
+  </style>
+</head>
+<body>
+  <p class="top" id="top"></p>
+  <div id="board" class="board" style="grid-template-columns: repeat(3, auto)"></div>
+  <p class="hint">Frecce e Invio per mettere la tua ❌ · 1 facile · 2 medio · 3 difficile · 4 in due</p>
+  <script src="../shell.js"></script>
+  <script type="module">
+    import { beep, gridCursor, message, tune, LOSE, WIN } from '../kit.js';
+    import { computerMove, winner } from './tris.js';
+
+    const MARK = { X: '❌', O: '⭕' };
+    const LEVEL_NAMES = { easy: 'facile', medium: 'medio', hard: 'difficile', two: 'in due' };
+    const boardEl = document.getElementById('board');
+    let board;
+    let turn;
+    let level = 'medium';
+    let done = null;
+
+    const cursor = gridCursor({ cols: () => 3, rows: () => 3, start: [1, 1], onMove: draw, onPick: ({ x, y }) => play(y * 3 + x) });
+
+    function start() {
+      board = Array(9).fill(null);
+      turn = 'X';
+      done = null;
+      message('');
+      draw();
+    }
+
+    function draw() {
+      boardEl.replaceChildren(...board.map((v, i) => {
+        const cell = document.createElement('div');
+        cell.className = `cell${i === cursor.y * 3 + cursor.x ? ' cursor' : ''}${done?.line.includes(i) ? ' win' : ''}`;
+        cell.textContent = v ? MARK[v] : '';
+        cell.addEventListener('click', () => play(i));
+        return cell;
+      }));
+      document.getElementById('top').textContent = level === 'two'
+        ? `Tocca a ${MARK[turn]}` : `Tu sei ${MARK.X} · computer ${LEVEL_NAMES[level]}`;
+    }
+
+    function finish() {
+      done = winner(board);
+      if (!done) return false;
+      draw();
+      setTimeout(() => {
+        if (!done.player) {
+          beep(300, 0.3);
+          message('Pareggio!', 'Invio per rigiocare');
+        } else if (level === 'two' || done.player === 'X') {
+          tune(WIN);
+          message(`${MARK[done.player]} vince! 🎉`, 'Invio per rigiocare');
+        } else {
+          tune(LOSE);
+          message('Ha vinto il computer', 'Invio per rigiocare');
+        }
+      }, 500);
+      return true;
+    }
+
+    function play(i) {
+      if (done) return start();
+      if (board[i] || (level !== 'two' && turn !== 'X')) return;
+      board[i] = turn;
+      beep(turn === 'X' ? 600 : 400);
+      turn = turn === 'X' ? 'O' : 'X';
+      draw();
+      if (finish() || level === 'two') return;
+      setTimeout(() => {
+        board[computerMove(board, 'O', level)] = 'O';
+        beep(400);
+        turn = 'X';
+        draw();
+        finish();
+      }, 450);
+    }
+
+    addEventListener('keydown', e => {
+      const levels = { 1: 'easy', 2: 'medium', 3: 'hard', 4: 'two' };
+      if (levels[e.key]) {
+        level = levels[e.key];
+        start();
+      }
+    });
+
+    start();
+  </script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Dama</title>
+  <link rel="stylesheet" href="../shell.css">
+  <link rel="stylesheet" href="../board.css">
+  <style>
+    .piece { width: 8vmin; height: 8vmin; border-radius: 50%; display: grid; place-items: center; font-size: 5vmin; box-shadow: 0 0.6vmin 0 rgb(0 0 0 / 0.35), inset 0 0 0 0.8vmin rgb(0 0 0 / 0.12); }
+    .piece.w { background: #fff6e6; color: #b58863; }
+    .piece.b { background: #3a2a22; color: #f0d9b5; }
+    .sq.must { box-shadow: inset 0 0 0 0.5vmin #ff6b6b; }
+  </style>
+</head>
+<body>
+  <p class="side" id="top"></p>
+  <div id="board" class="squares"></div>
+  <p class="hint">Frecce e Invio: scegli la pedina, poi dove va · mangiare è obbligatorio · 1 facile · 2 medio · 3 difficile · 4 in due</p>
+  <script src="../shell.js"></script>
+  <script type="module">
+    import { beep, gridCursor, message, tune, LOSE, WIN } from '../kit.js';
+    import { applyMove, bestMove, initialBoard, isDark, legalMoves } from './checkers.js';
+
+    const LEVELS = { 1: ['facile', 1], 2: ['medio', 3], 3: ['difficile', 5], 4: ['in due', 0] };
+    const boardEl = document.getElementById('board');
+    let board;
+    let turn;
+    let selected = null;
+    let level = '1';
+    let thinking = false;
+    let over = false;
+
+    const cursor = gridCursor({ cols: () => 8, rows: () => 8, start: [2, 5], onMove: draw, onPick: ({ x, y }) => pick(y * 8 + x) });
+
+    function start() {
+      board = initialBoard();
+      turn = 'w';
+      selected = null;
+      over = false;
+      message('');
+      draw();
+    }
+
+    function draw() {
+      const moves = legalMoves(board, turn);
+      const mustCapture = moves[0]?.captured.length > 0;
+      const mine = selected != null ? moves.filter(m => m.from === selected) : [];
+      boardEl.replaceChildren(...board.map((p, i) => {
+        const sq = document.createElement('div');
+        sq.className = `sq ${isDark(i) ? 'dark' : 'light'}`;
+        if (i === cursor.y * 8 + cursor.x) sq.classList.add('cursor');
+        if (i === selected) sq.classList.add('selected');
+        if (mine.some(m => m.path.at(-1) === i)) sq.classList.add('target');
+        if (mustCapture && selected == null && moves.some(m => m.from === i)) sq.classList.add('must');
+        if (p) sq.append(Object.assign(document.createElement('div'), { className: `piece ${p.color}`, textContent: p.king ? '♛' : '' }));
+        sq.addEventListener('click', () => {
+          cursor.x = i % 8;
+          cursor.y = Math.floor(i / 8);
+          pick(i);
+        });
+        return sq;
+      }));
+      const who = turn === 'w' ? 'Bianco' : 'Nero';
+      document.getElementById('top').textContent = level === '4'
+        ? `Tocca al ${who}${mustCapture ? ' · devi mangiare!' : ''}`
+        : `Tu sei il Bianco · computer ${LEVELS[level][0]}${thinking ? ' · ci penso…' : mustCapture && turn === 'w' ? ' · devi mangiare!' : ''}`;
+    }
+
+    function finish() {
+      if (legalMoves(board, turn).length) return false;
+      over = true;
+      draw();
+      const winner = turn === 'w' ? 'Nero' : 'Bianco';
+      setTimeout(() => {
+        if (level === '4' || turn === 'b') {
+          tune(WIN);
+          message('Hai vinto! 🏆', level === '4' ? `Vince il ${winner} · Invio per rigiocare` : 'Invio per rigiocare');
+        } else {
+          tune(LOSE);
+          message('Ha vinto il computer', 'Invio per rigiocare');
+        }
+      }, 400);
+      return true;
+    }
+
+    function play(m) {
+      board = applyMove(board, m);
+      turn = turn === 'w' ? 'b' : 'w';
+      selected = null;
+      beep(m.captured.length ? 330 : 520, 0.08);
+      draw();
+      return finish();
+    }
+
+    function pick(i) {
+      if (over) return start();
+      if (thinking || (level !== '4' && turn !== 'w')) return;
+      const moves = legalMoves(board, turn);
+      if (board[i]?.color === turn) {
+        if (!moves.some(m => m.from === i)) return beep(180, 0.08, 'square', 0.05);
+        selected = i === selected ? null : i;
+        beep(700, 0.03);
+        return draw();
+      }
+      // With several chains to the same square, the longest one.
+      const m = moves.filter(x => x.from === selected && x.path.at(-1) === i).sort((a, b) => b.captured.length - a.captured.length)[0];
+      if (!m) return beep(180, 0.08, 'square', 0.05);
+      if (play(m) || level === '4') return;
+      thinking = true;
+      draw();
+      setTimeout(() => {
+        const reply = bestMove(board, 'b', LEVELS[level][1]);
+        thinking = false;
+        if (reply) play(reply);
+      }, 400);
+    }
+
+    addEventListener('keydown', e => {
+      if (LEVELS[e.key]) {
+        level = e.key;
+        start();
+      } else if (e.key === 'n' || e.key === 'N') start();
+    });
+
+    start();
+  </script>
+</body>
+</html>

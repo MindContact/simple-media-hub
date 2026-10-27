@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Lettere e numeri</title>
+  <link rel="stylesheet" href="../shell.css">
+  <style>
+    #stage { text-align: center; }
+    #big { font-size: 40vmin; font-weight: 900; line-height: 1; transition: transform 0.2s ease; }
+    #big.pop { transform: scale(1.15); }
+    #pic { font-size: 18vmin; line-height: 1.2; min-height: 22vmin; }
+    #word { font-size: 7vmin; font-weight: 800; letter-spacing: 0.06em; min-height: 9vmin; }
+    #word b { color: #ffd23f; }
+    #score { font-size: 4vmin; }
+  </style>
+</head>
+<body>
+  <p class="top" id="mode"></p>
+  <div id="stage">
+    <div id="big"></div>
+    <div id="pic"></div>
+    <div id="word"></div>
+    <div id="score"></div>
+  </div>
+  <p class="hint">Premi il tasto che vedi! · Tab cambia gioco: libero · trova la lettera · numeri</p>
+  <script src="../shell.js"></script>
+  <script type="module">
+    import { beep, tune, WIN } from '../kit.js';
+
+    // An Italian word for every letter (no J K W X Y words that a child would know: they get a sign).
+    const WORDS = {
+      A: ['🐝', 'APE'], B: ['⛵', 'BARCA'], C: ['🐶', 'CANE'], D: ['🐬', 'DELFINO'], E: ['🐘', 'ELEFANTE'],
+      F: ['🌸', 'FIORE'], G: ['🐱', 'GATTO'], H: ['🏨', 'HOTEL'], I: ['🦔', 'ISTRICE'], J: ['🥋', 'JUDO'],
+      K: ['🐨', 'KOALA'], L: ['🦁', 'LEONE'], M: ['🍎', 'MELA'], N: ['☁️', 'NUVOLA'], O: ['🐻', 'ORSO'],
+      P: ['🐟', 'PESCE'], Q: ['📒', 'QUADERNO'], R: ['🐸', 'RANA'], S: ['☀️', 'SOLE'], T: ['🐢', 'TARTARUGA'],
+      U: ['🥚', 'UOVO'], V: ['🐄', 'VACCA'], W: ['🌭', 'WURSTEL'], X: ['🎶', 'XILOFONO'], Y: ['🧘', 'YOGA'], Z: ['🦓', 'ZEBRA'],
+    };
+    const NUMBER_PIC = ['🍓', '🐞', '⭐', '🎈', '🍪', '🐥', '🌼', '🚗', '🍭', '🐟'];
+    const MODES = ['Libero', 'Trova la lettera', 'Numeri'];
+    const COLORS = ['#ff6b6b', '#ffd23f', '#4cd964', '#3fa9f5', '#c38cff', '#ff9f1a'];
+    let mode = 0;
+    let target = null;
+    let score = 0;
+    const $ = id => document.getElementById(id);
+
+    function show(char) {
+      $('big').textContent = char;
+      $('big').style.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+      $('big').classList.remove('pop');
+      void $('big').offsetWidth;
+      $('big').classList.add('pop');
+      if (/[0-9]/.test(char)) {
+        const n = Number(char);
+        $('pic').textContent = NUMBER_PIC[n].repeat(n) || '🫙';
+        $('word').textContent = ['ZERO', 'UNO', 'DUE', 'TRE', 'QUATTRO', 'CINQUE', 'SEI', 'SETTE', 'OTTO', 'NOVE'][n];
+      } else {
+        const [pic, word] = WORDS[char];
+        $('pic').textContent = pic;
+        $('word').innerHTML = `<b>${word[0]}</b>${word.slice(1)}`;
+      }
+    }
+
+    function nextTarget() {
+      const pool = mode === 2 ? '123456789' : 'ABCDEFGHILMNOPRSTUVZ';
+      target = pool[Math.floor(Math.random() * pool.length)];
+      $('big').textContent = target;
+      $('big').style.color = '#fff';
+      $('pic').textContent = '⌨️';
+      $('word').textContent = 'Trova questo tasto!';
+      $('score').textContent = `⭐ ${score}`;
+    }
+
+    function setMode(n) {
+      mode = n;
+      score = 0;
+      $('mode').textContent = MODES[mode];
+      $('score').textContent = '';
+      if (mode === 0) {
+        $('big').textContent = '🔤';
+        $('pic').textContent = '';
+        $('word').textContent = 'Premi una lettera o un numero';
+      } else nextTarget();
+    }
+
+    addEventListener('keydown', e => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        return setMode((mode + 1) % MODES.length);
+      }
+      const char = e.key.length === 1 ? e.key.toUpperCase() : null;
+      if (!char || !/[A-Z0-9]/.test(char)) return;
+      if (mode === 0) {
+        beep(260 + (char.charCodeAt(0) % 26) * 30, 0.25, 'triangle');
+        return show(char);
+      }
+      if (char === target) {
+        score++;
+        tune(score % 5 ? [660, 880] : WIN);
+        show(char);
+        setTimeout(nextTarget, 1500);
+      } else {
+        beep(180, 0.15, 'square', 0.06);
+      }
+    });
+
+    setMode(0);
+  </script>
+</body>
+</html>

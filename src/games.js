@@ -1,0 +1,22 @@
+// Games shipped in public/games/<id>/. The admin page can rename, reorder and hide them.
+export const GAMES = [
+  { id: 'tetris', name: 'Tetris', icon: '🧱', color: '#7b5cff' },
+  { id: 'arkanoid', name: 'Arkanoid', icon: '🏓', color: '#ff7a45' },
+  { id: 'pacman', name: 'Pac-Man', icon: '🟡', color: '#1e2a78' },
+  { id: 'invaders', name: 'Space Invaders', icon: '👾', color: '#16a34a' },
+  { id: 'sokoban', name: 'Sokoban', icon: '📦', color: '#c2783d' },
+  { id: 'flipper', name: 'Flipper', icon: '🎯', color: '#e0347a' },
+  { id: '2048', name: '2048', icon: '🔢', color: '#edc22e' },
+  { id: 'dino', name: 'Dino', icon: '🦖', color: '#6b7280' },
+  { id: 'pong', name: 'Pong', icon: '🥎', color: '#374151' },
+  { id: 'platform', name: 'Platform', icon: '🏃', color: '#0e7490' },
+  { id: 'memory', name: 'Memory', icon: '🃏', color: '#db2777' },
+  { id: 'tris', name: 'Tris', icon: '⭕', color: '#2563eb' },
+  { id: 'minesweeper', name: 'Campo fiorito', icon: '🌼', color: '#3e9b4f' },
+  { id: 'puzzle', name: 'Puzzle', icon: '🧩', color: '#9333ea' },
+  { id: 'paint', name: 'Colora', icon: '🎨', color: '#f97316' },
+  { id: 'letters', name: 'Lettere e numeri', icon: '🔤', color: '#0891b2' },
+  { id: 'checkers', name: 'Dama', icon: '⚪', color: '#92400e' },
+  { id: 'mill', name: 'Tria', icon: '🔵', color: '#065f46' },
+  { id: 'chess', name: 'Scacchi', icon: '♟️', color: '#44403c' },
+];

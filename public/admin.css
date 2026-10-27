@@ -1,0 +1,147 @@
+/* Admin page: for a parent with a mouse, so denser than the TV screens. */
+body.admin {
+  font-size: 17px;
+  padding: 24px 32px 120px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.admin-head {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.admin-head h1 { flex: 1; margin: 0; font-size: 2rem; }
+
+.back-link { color: var(--muted); text-decoration: none; font-weight: 700; }
+.back-link:hover { color: var(--text); }
+
+.panel {
+  background: rgb(0 0 0 / 0.25);
+  border-radius: 20px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+}
+
+.panel h2 { margin: 0 0 12px; font-size: 1.4rem; }
+
+.note { color: var(--muted); margin: 0 0 12px; }
+.note.ok { color: #7dff9b; }
+.note.error, .error { color: #ff9d9d; }
+
+.admin label {
+  display: block;
+  margin: 12px 0;
+  font-weight: 700;
+}
+
+.admin label.inline, .admin label.check { display: flex; align-items: center; gap: 12px; }
+.admin label.check { font-weight: 400; }
+
+.admin input:not([type]), .admin input[type=password], .admin input[type=text], .admin select {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+}
+
+.admin select:focus, .admin input:focus { outline: none; border-color: var(--focus); }
+.admin input[type=range] { width: 100%; accent-color: var(--accent); }
+.admin input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent); }
+.admin input[type=color] { width: 64px; height: 40px; border: 0; background: none; cursor: pointer; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.admin label.btn { display: inline-flex; margin: 0; }
+.btn:hover:not(:disabled) { filter: brightness(1.2); }
+.btn:disabled { opacity: 0.35; cursor: default; }
+.btn.primary { background: var(--accent); }
+.btn.ghost { background: transparent; border: 2px solid var(--card); }
+.btn.small { padding: 4px 10px; }
+
+.row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.row .note { margin: 0; }
+
+.login { max-width: 420px; margin: 10vh auto; }
+.login .btn { margin-top: 12px; }
+
+.presets, .choices { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+
+.preset, .choice {
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 3px solid transparent;
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.preset { background: var(--swatch); }
+.choice { background: var(--card); }
+.preset.active, .choice.active { border-color: var(--focus); }
+
+.palette { display: flex; gap: 8px; }
+.chip { width: 40px; height: 28px; border-radius: 8px; box-shadow: 0 0 0 2px rgb(255 255 255 / 0.2); }
+
+.image-options { margin-top: 12px; }
+
+.row input:not([type]) { flex: 1; margin-top: 0; font-weight: 400; }
+
+.places { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.places .choice small { color: var(--muted); font-weight: 400; }
+
+.games { list-style: none; margin: 0; padding: 0; }
+
+.game-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.game-row input:not([type]) { margin-top: 0; flex: 1; }
+.game-row.off .game-icon, .game-row.off input:not([type]) { opacity: 0.4; }
+
+.game-icon {
+  width: 44px;
+  height: 32px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+}
+
+.save-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 32px;
+  background: rgb(0 0 0 / 0.55);
+  backdrop-filter: blur(8px);
+}
+
+.save-bar .note { margin: 0; }

@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Flipper</title>
+  <link rel="stylesheet" href="../shell.css">
+</head>
+<body>
+  <canvas id="table" class="fit" width="480" height="820"></canvas>
+  <script src="../shell.js"></script>
+  <script>
+    // A small pinball: walls and flippers are capsules (segments with a radius), bumpers are circles.
+    // Physics runs in substeps so the ball never tunnels through a flipper.
+    const canvas = document.getElementById('table');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
+    const BALL_R = 11;
+    const GRAVITY = 900;
+    const SUBSTEPS = 10;
+    const MAX_SPEED = 1700;
+
+    const walls = [
+      [20, 140, 20, 600], [460, 140, 460, 600],
+      [20, 140, 110, 30], [110, 30, 370, 30], [370, 30, 460, 140],
+      [20, 600, 150, 700], [460, 600, 330, 700],
+      // Slingshots above the flippers.
+      [90, 520, 90, 590], [90, 590, 140, 620], [390, 520, 390, 590], [390, 590, 340, 620],
+    ].map(([x1, y1, x2, y2]) => ({ x1, y1, x2, y2, r: 4, bounce: 0.5 }));
+    const slings = new Set([walls[8], walls[10]]);
+
+    const bumpers = [
+      { x: 150, y: 220, r: 30, color: '#ff4f8b' },
+      { x: 330, y: 220, r: 30, color: '#4fc3ff' },
+      { x: 240, y: 330, r: 34, color: '#ffd54f' },
+      { x: 240, y: 130, r: 22, color: '#7cff6b' },
+    ].map(b => ({ ...b, flash: 0 }));
+
+    const FLIPPER_LEN = 74;
+    const flippers = [
+      { x: 150, y: 700, rest: 0.5, up: -0.5, key: ['ArrowLeft', 'z', 'Z', 'a', 'A'] },
+      { x: 330, y: 700, rest: Math.PI - 0.5, up: Math.PI + 0.5, key: ['ArrowRight', 'm', 'M', 'l', 'L'] },
+    ].map(f => ({ ...f, angle: f.rest, omega: 0, pressed: false }));
+
+    let ball = null;
+    let balls = 3;
+    let score = 0;
+    let best = 0;
+    let over = false;
+
+    // --- Sound: short beeps, no files.
+    let audio = null;
+    function beep(freq, time = 0.06) {
+      try {
+        audio ??= new AudioContext();
+        const osc = audio.createOscillator();
+        const gain = audio.createGain();
+        osc.frequency.value = freq;
+        osc.type = 'square';
+        gain.gain.setValueAtTime(0.08, audio.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + time);
+        osc.connect(gain).connect(audio.destination);
+        osc.start();
+        osc.stop(audio.currentTime + time);
+      } catch {}
+    }
+
+    function launch() {
+      if (over) {
+        over = false;
+        balls = 3;
+        score = 0;
+      }
+      if (ball || balls === 0) return;
+      ball = { x: 200 + Math.random() * 80, y: 70, vx: (Math.random() - 0.5) * 300, vy: 0 };
+      beep(440, 0.15);
+    }
+
+    // Pushes the ball out of a capsule and reflects its velocity relative to the surface,
+    // which moves when the capsule is a flipper in motion.
+    function collideSegment(x1, y1, x2, y2, radius, bounce, surface) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const t = Math.max(0, Math.min(1, ((ball.x - x1) * dx + (ball.y - y1) * dy) / (dx * dx + dy * dy)));
+      const qx = x1 + t * dx;
+      const qy = y1 + t * dy;
+      const ox = ball.x - qx;
+      const oy = ball.y - qy;
+      const dist = Math.hypot(ox, oy);
+      const min = BALL_R + radius;
+      if (dist >= min || dist === 0) return false;
+      const nx = ox / dist;
+      const ny = oy / dist;
+      ball.x = qx + nx * min;
+      ball.y = qy + ny * min;
+      const [sx, sy] = surface ? surface(qx, qy) : [0, 0];
+      const rvx = ball.vx - sx;
+      const rvy = ball.vy - sy;
+      const along = rvx * nx + rvy * ny;
+      if (along < 0) {
+        ball.vx = rvx - (1 + bounce) * along * nx + sx;
+        ball.vy = rvy - (1 + bounce) * along * ny + sy;
+      }
+      return true;
+    }
+
+    function tip(f) {
+      return [f.x + Math.cos(f.angle) * FLIPPER_LEN, f.y + Math.sin(f.angle) * FLIPPER_LEN];
+    }
+
+    function update(dt) {
+      for (const f of flippers) {
+        const target = f.pressed ? f.up : f.rest;
+        const speed = 22;
+        const before = f.angle;
+        const diff = target - f.angle;
+        f.angle += Math.sign(diff) * Math.min(Math.abs(diff), speed * dt);
+        f.omega = (f.angle - before) / dt;
+      }
+      for (const b of bumpers) b.flash = Math.max(0, b.flash - dt * 4);
+      if (!ball) return;
+
+      ball.vy += GRAVITY * dt;
+      ball.x += ball.vx * dt;
+      ball.y += ball.vy * dt;
+
+      for (const w of walls) {
+        if (collideSegment(w.x1, w.y1, w.x2, w.y2, w.r, w.bounce) && slings.has(w)) {
+          // Slingshots kick the ball back up into play.
+          const len = Math.hypot(ball.vx, ball.vy);
+          if (len < 900) {
+            ball.vx *= 900 / Math.max(len, 1);
+            ball.vy = Math.min(ball.vy, -500);
+          }
+          score += 10;
+          beep(660);
+        }
+      }
+      for (const f of flippers) {
+        const [tx, ty] = tip(f);
+        // Surface velocity of a point on a rotating flipper: omega × (point - pivot).
+        collideSegment(f.x, f.y, tx, ty, 9, 0.3, (qx, qy) => [-f.omega * (qy - f.y), f.omega * (qx - f.x)]);
+      }
+      for (const b of bumpers) {
+        const ox = ball.x - b.x;
+        const oy = ball.y - b.y;
+        const dist = Math.hypot(ox, oy);
+        if (dist < b.r + BALL_R && dist > 0) {
+          const nx = ox / dist;
+          const ny = oy / dist;
+          ball.x = b.x + nx * (b.r + BALL_R);
+          ball.y = b.y + ny * (b.r + BALL_R);
+          ball.vx = nx * 750;
+          ball.vy = ny * 750;
+          b.flash = 1;
+          score += 100;
+          beep(880 + b.r * 10);
+        }
+      }
+
+      const speed = Math.hypot(ball.vx, ball.vy);
+      if (speed > MAX_SPEED) {
+        ball.vx *= MAX_SPEED / speed;
+        ball.vy *= MAX_SPEED / speed;
+      }
+      if (ball.y > H + BALL_R) {
+        ball = null;
+        balls--;
+        beep(180, 0.4);
+        if (balls === 0) {
+          over = true;
+          best = Math.max(best, score);
+        }
+      }
+    }
+
+    function line(x1, y1, x2, y2, width, color) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    }
+
+    function text(str, x, y, size, color = '#fff') {
+      ctx.fillStyle = color;
+      ctx.font = `bold ${size}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(str, x, y);
+    }
+
+    function draw() {
+      const bg = ctx.createLinearGradient(0, 0, 0, H);
+      bg.addColorStop(0, '#2a1f6e');
+      bg.addColorStop(1, '#120c33');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+
+      for (const w of walls) line(w.x1, w.y1, w.x2, w.y2, w.r * 2, slings.has(w) ? '#ff9f43' : '#b9a8ff');
+      for (const b of bumpers) {
+        ctx.fillStyle = b.flash ? '#fff' : b.color;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r + b.flash * 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r * 0.45, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      for (const f of flippers) {
+        const [tx, ty] = tip(f);
+        line(f.x, f.y, tx, ty, 18, '#ff4f8b');
+      }
+      if (ball) {
+        ctx.fillStyle = '#eee';
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      text(`${score}`, W / 2, 80, 30);
+      text('●'.repeat(balls), W / 2, 790, 22, '#ffd54f');
+      if (over) {
+        text('Fine partita!', W / 2, 470, 44);
+        text(`Punti: ${score} · record: ${best}`, W / 2, 515, 22);
+        text('Spazio per rigiocare', W / 2, 560, 22);
+      } else if (!ball) {
+        text('Spazio per lanciare', W / 2, 470, 30);
+        text('← → per i flipper', W / 2, 510, 22);
+      }
+    }
+
+    function setKey(e, pressed) {
+      for (const f of flippers) {
+        if (f.key.includes(e.key)) {
+          if (pressed && !f.pressed) beep(300, 0.03);
+          f.pressed = pressed;
+        }
+      }
+      if (pressed && (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowDown')) launch();
+    }
+    addEventListener('keydown', e => setKey(e, true));
+    addEventListener('keyup', e => setKey(e, false));
+
+    // Touch: left half of the screen is the left flipper, right half the right one.
+    addEventListener('pointerdown', e => {
+      if (!ball) return launch();
+      flippers[e.clientX < innerWidth / 2 ? 0 : 1].pressed = true;
+    });
+    addEventListener('pointerup', () => { for (const f of flippers) f.pressed = false; });
+
+    let last = performance.now();
+    function frame(now) {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      for (let i = 0; i < SUBSTEPS; i++) update(dt / SUBSTEPS);
+      draw();
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>

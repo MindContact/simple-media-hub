@@ -1,0 +1,11 @@
+node_modules/
+*.log
+
+# Local configuration and runtime data (settings database, uploaded background)
+.env
+data/
+
+# Editor and agent settings
+.claude/
+.vscode/
+.idea/

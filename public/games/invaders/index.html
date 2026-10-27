@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Space Invaders</title>
+  <link rel="stylesheet" href="../shell.css">
+  <style>
+    #starfield { position: fixed; inset: 0; }
+    #gameCanvas { position: relative; }
+  </style>
+</head>
+<body>
+  <div id="starfield"></div>
+  <canvas id="gameCanvas" class="fit"></canvas>
+  <p class="hint">Frecce per muoverti · Spazio per sparare</p>
+  <script src="../shell.js"></script>
+  <script src="js/starfield.js"></script>
+  <script src="js/spaceinvaders.js"></script>
+  <script>
+    const starfield = new Starfield();
+    starfield.initialise(document.getElementById('starfield'));
+    starfield.start();
+
+    const canvas = document.getElementById('gameCanvas');
+    canvas.width = 800;
+    canvas.height = 600;
+    const game = new Game();
+    game.initialise(canvas);
+    game.start();
+
+    window.addEventListener('keydown', e => game.keyDown(e.which));
+    window.addEventListener('keyup', e => game.keyUp(e.which));
+    window.addEventListener('touchstart', e => game.touchstart(e), false);
+    window.addEventListener('touchend', e => game.touchend(e), false);
+    window.addEventListener('touchmove', e => game.touchmove(e), false);
+  </script>
+</body>
+</html>

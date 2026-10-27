@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Campo fiorito</title>
+  <link rel="stylesheet" href="../shell.css">
+  <style>
+    .board { gap: 0.5vmin; }
+    .cell { border-radius: 1vmin; background: #3e9b4f; font-weight: 900; }
+    .cell.open { background: #f3e2b8; cursor: default; }
+    .n1 { color: #1e6fd9; } .n2 { color: #2a8a3a; } .n3 { color: #d93a1e; } .n4 { color: #6a2ad9; } .n5, .n6, .n7, .n8 { color: #8a1e1e; }
+  </style>
+</head>
+<body>
+  <p class="top" id="top"></p>
+  <div id="board" class="board"></div>
+  <p class="hint">Frecce e Invio per scoprire · F per mettere un 🚩 · evita le api 🐝 · 1 2 3 livello</p>
+  <script src="../shell.js"></script>
+  <script type="module">
+    import { beep, gridCursor, message, tune, LOSE, WIN } from '../kit.js';
+    import { count, createField, isWon, placeMines, reveal } from './mines.js';
+
+    // A kid-friendly theme: a meadow with flowers to find and bees to avoid.
+    const LEVELS = [{ cols: 8, rows: 6, mines: 6 }, { cols: 10, rows: 8, mines: 12 }, { cols: 14, rows: 9, mines: 22 }];
+    const boardEl = document.getElementById('board');
+    let level = 0;
+    let field;
+    let over = false;
+    const cols = () => LEVELS[level].cols;
+    const rows = () => LEVELS[level].rows;
+
+    const cursor = gridCursor({ cols, rows, onMove: draw, onPick: ({ x, y }) => pick(y * cols() + x) });
+
+    function start(n = level) {
+      level = n;
+      field = createField(cols(), rows());
+      over = false;
+      cursor.x = Math.floor(cols() / 2);
+      cursor.y = Math.floor(rows() / 2);
+      message('');
+      draw();
+    }
+
+    function draw() {
+      boardEl.style.setProperty('--cell', `${Math.min(86 / cols(), 70 / rows())}vmin`);
+      boardEl.style.gridTemplateColumns = `repeat(${cols()}, auto)`;
+      const cells = [];
+      for (let i = 0; i < cols() * rows(); i++) {
+        const cell = document.createElement('div');
+        const isOpen = field.open.has(i) || (over && field.mines?.has(i));
+        cell.className = `cell${isOpen ? ' open' : ''}${i === cursor.y * cols() + cursor.x ? ' cursor' : ''}`;
+        if (over && field.mines?.has(i)) cell.textContent = '🐝';
+        else if (field.open.has(i)) {
+          const n = count(field, i);
+          cell.textContent = n || '🌼';
+          if (n) cell.classList.add(`n${n}`);
+        } else if (field.flags.has(i)) cell.textContent = '🚩';
+        cell.addEventListener('click', () => pick(i));
+        cell.addEventListener('contextmenu', e => {
+          e.preventDefault();
+          flag(i);
+        });
+        cells.push(cell);
+      }
+      boardEl.replaceChildren(...cells);
+      const left = LEVELS[level].mines - field.flags.size;
+      document.getElementById('top').textContent = `Livello ${level + 1} · api nascoste: ${LEVELS[level].mines} · 🚩 rimaste: ${left}`;
+    }
+
+    function pick(i) {
+      if (over) return start(isWon(field) ? Math.min(level + 1, LEVELS.length - 1) : level);
+      if (!field.mines) placeMines(field, LEVELS[level].mines, i);
+      if (!reveal(field, i)) {
+        over = true;
+        draw();
+        tune(LOSE);
+        return message('Bzz! Un’ape 🐝', 'Invio per riprovare');
+      }
+      beep(700, 0.05);
+      draw();
+      if (isWon(field)) {
+        over = true;
+        tune(WIN);
+        message('🌼 Prato fiorito! 🌼', 'Invio per il prossimo livello');
+      }
+    }
+
+    function flag(i) {
+      if (over || field.open.has(i)) return;
+      if (field.flags.has(i)) field.flags.delete(i);
+      else field.flags.add(i);
+      beep(300, 0.05);
+      draw();
+    }
+
+    addEventListener('keydown', e => {
+      if (e.key === 'f' || e.key === 'F') flag(cursor.y * cols() + cursor.x);
+      if (['1', '2', '3'].includes(e.key)) start(Number(e.key) - 1);
+    });
+
+    start(0);
+  </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+/* Shared look for the square-board games (chess, checkers). */
+.squares { display: grid; grid-template-columns: repeat(8, 10vmin); border: 1vmin solid #5c3d2e; border-radius: 1vmin; }
+.sq { width: 10vmin; height: 10vmin; display: grid; place-items: center; font-size: 7.4vmin; line-height: 1; position: relative; cursor: pointer; }
+.sq.light { background: #f0d9b5; }
+.sq.dark { background: #b58863; }
+.sq.cursor { box-shadow: inset 0 0 0 0.7vmin #ffd23f; }
+.sq.selected { background: #9bd36f; }
+.sq.target::after { content: ''; position: absolute; width: 3vmin; height: 3vmin; border-radius: 50%; background: rgb(30 30 30 / 0.35); }
+.sq.last { background-image: linear-gradient(rgb(255 230 80 / 0.4), rgb(255 230 80 / 0.4)); }
+.sq.check { background: #ff6b6b; }
+.side { position: fixed; top: 2vh; left: 0; right: 0; text-align: center; font-size: 1.8rem; font-weight: 800; margin: 0; }

@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Scacchi</title>
+  <link rel="stylesheet" href="../shell.css">
+  <link rel="stylesheet" href="../board.css">
+  <style>
+    .sq .w { color: #fff; -webkit-text-stroke: 0.25vmin #222; }
+    .sq .b { color: #222; }
+  </style>
+</head>
+<body>
+  <p class="side" id="top"></p>
+  <div id="board" class="squares"></div>
+  <p class="hint">Frecce e Invio: scegli il pezzo, poi dove muoverlo · 1 facile · 2 medio · 3 difficile · 4 in due · N nuova partita</p>
+  <script src="../shell.js"></script>
+  <script type="module">
+    import { beep, gridCursor, message, tune, LOSE, WIN } from '../kit.js';
+    import { bestMove, colorOf, initialState, inCheck, legalMoves, makeMove, outcome } from './chess.js';
+
+    // Filled glyphs for both sides, colored by CSS: the outline ones are hard to read on a TV.
+    const GLYPH = { P: '♟', N: '♞', B: '♝', R: '♜', Q: '♛', K: '♚' };
+    const LEVELS = { 1: ['facile', 1], 2: ['medio', 2], 3: ['difficile', 3], 4: ['in due', 0] };
+    const boardEl = document.getElementById('board');
+    let state;
+    let selected = null;
+    let last = null;
+    let level = '1';
+    let thinking = false;
+    let over = null;
+
+    const cursor = gridCursor({ cols: () => 8, rows: () => 8, start: [4, 6], onMove: draw, onPick: ({ x, y }) => pick(y * 8 + x) });
+
+    function start() {
+      state = initialState();
+      selected = null;
+      last = null;
+      over = null;
+      message('');
+      draw();
+    }
+
+    function draw() {
+      const moves = selected != null ? legalMoves(state).filter(m => m.from === selected) : [];
+      const king = inCheck(state) ? state.board.indexOf(state.turn === 'w' ? 'K' : 'k') : -1;
+      boardEl.replaceChildren(...state.board.map((p, i) => {
+        const sq = document.createElement('div');
+        const dark = (i % 8 + Math.floor(i / 8)) % 2 === 1;
+        sq.className = `sq ${dark ? 'dark' : 'light'}`;
+        if (i === cursor.y * 8 + cursor.x) sq.classList.add('cursor');
+        if (i === selected) sq.classList.add('selected');
+        if (moves.some(m => m.to === i)) sq.classList.add('target');
+        if (last && (i === last.from || i === last.to)) sq.classList.add('last');
+        if (i === king) sq.classList.add('check');
+        if (p) sq.append(Object.assign(document.createElement('span'), { className: colorOf(p), textContent: GLYPH[p.toUpperCase()] }));
+        sq.addEventListener('click', () => {
+          cursor.x = i % 8;
+          cursor.y = Math.floor(i / 8);
+          pick(i);
+        });
+        return sq;
+      }));
+      const who = state.turn === 'w' ? 'Bianco' : 'Nero';
+      document.getElementById('top').textContent = level === '4'
+        ? `Tocca al ${who}${inCheck(state) ? ' · scacco!' : ''}`
+        : `Tu sei il Bianco · computer ${LEVELS[level][0]}${thinking ? ' · ci penso…' : inCheck(state) ? ' · scacco!' : ''}`;
+    }
+
+    function finish() {
+      over = outcome(state);
+      if (!over) return false;
+      draw();
+      const loser = state.turn;
+      setTimeout(() => {
+        if (over === 'stalemate') {
+          beep(300, 0.3);
+          message('Patta!', 'Nessuno può muovere · N per una nuova partita');
+        } else if (level === '4' || loser === 'b') {
+          tune(WIN);
+          message('Scacco matto! 🏆', `Vince il ${loser === 'w' ? 'Nero' : 'Bianco'} · N per una nuova partita`);
+        } else {
+          tune(LOSE);
+          message('Scacco matto', 'Ha vinto il computer · N per una nuova partita');
+        }
+      }, 400);
+      return true;
+    }
+
+    function play(m) {
+      state = makeMove(state, m);
+      last = m;
+      selected = null;
+      beep(m.captured ? 330 : 520, 0.08);
+      draw();
+      return finish();
+    }
+
+    function pick(i) {
+      if (over) return start();
+      if (thinking) return;
+      if (level !== '4' && state.turn !== 'w') return;
+      const p = state.board[i];
+      if (p && colorOf(p) === state.turn) {
+        selected = i === selected ? null : i;
+        beep(700, 0.03);
+        return draw();
+      }
+      if (selected == null) return;
+      const m = legalMoves(state).find(x => x.from === selected && x.to === i);
+      if (!m) return beep(180, 0.08, 'square', 0.05);
+      if (play(m) || level === '4') return;
+      thinking = true;
+      draw();
+      // Let the page paint the move before the search blocks it.
+      setTimeout(() => {
+        const reply = bestMove(state, LEVELS[level][1]);
+        thinking = false;
+        if (reply) play(reply);
+      }, 250);
+    }
+
+    addEventListener('keydown', e => {
+      if (LEVELS[e.key]) {
+        level = e.key;
+        start();
+      } else if (e.key === 'n' || e.key === 'N') start();
+    });
+
+    start();
+  </script>
+</body>
+</html>

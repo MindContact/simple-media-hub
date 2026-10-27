@@ -1,0 +1,52 @@
+<!DOCTYPE html> 
+<html>
+<head>
+  <title>Arkanoid</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <link href="breakout.css" media="screen, print" rel="stylesheet" type="text/css" /> 
+</head> 
+ 
+<body> 
+
+
+  <div id="breakout">
+    <canvas id="canvas">
+      <div class='unsupported'>
+        Sorry, this example cannot be run because your browser does not support the &lt;canvas&gt; element
+      </div>
+    </canvas>
+    <div id="levels">
+      <img id="next" class="disabled" src="images/up.png"   title="livello successivo">
+      <img id="prev" class="disabled" src="images/down.png" title="livello precedente">
+      <span id="label">livello:</span><span id="level"></span>
+    </div>
+    <div id="controls">
+      <input id='sound' type='checkbox' />
+      <label for='sound'>suoni</label>
+    </div>
+    <div id="instructions" style='display:none;'>
+      <div class='keyboard'>
+        <b>spazio</b> per iniziare<br>
+        <b>sinistra/destra</b> per muovere<br>
+        <b>su/giù</b> per cambiare livello
+      </div>
+      <div class='touch'>
+        <b>tocca qui</b> per iniziare<br>
+        <b>trascina</b> per muovere<br>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shell.js"></script>
+  <script src="game.js"></script>
+  <script src="breakout.js"></script>
+  <script src="levels.js"></script>
+  <script>
+  Game.ready(function() {
+    var game = Game.start('canvas', Breakout);
+  });
+  </script>
+
+</body> 
+</html>

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Puzzle</title>
+  <link rel="stylesheet" href="../shell.css">
+  <style>
+    .board { gap: 0.6vmin; }
+    .cell { background: var(--bg-tile, #7b5cff); color: #fff; font-weight: 900; position: relative; overflow: hidden; }
+    .cell .pic { position: absolute; font-size: calc(var(--cell) * var(--size) * 0.8); line-height: 1; }
+    .cell .num { position: absolute; right: 0.6vmin; bottom: 0.3vmin; font-size: calc(var(--cell) * 0.22); text-shadow: 0 0 4px #000; }
+    .cell.hole { background: transparent; cursor: default; }
+  </style>
+</head>
+<body>
+  <p class="top" id="top"></p>
+  <div id="board" class="board"></div>
+  <p class="hint">Frecce per scegliere, Invio per spostare il pezzo nel buco · 1 2 3 livello · I cambia immagine</p>
+  <script src="../shell.js"></script>
+  <script type="module">
+    import { beep, gridCursor, message, tune, WIN } from '../kit.js';
+    import { isSolved, scramble, slide } from './puzzle.js';
+
+    // The picture is one big emoji cut into tiles.
+    const PICTURES = [['🦁', '#f5b042'], ['🐳', '#3fa9f5'], ['🦄', '#d98cf2'], ['🐸', '#6fd36f'], ['🚀', '#5c5ce0'], ['🌻', '#7ec8e3']];
+    const LEVELS = [{ size: 3, moves: 25 }, { size: 3, moves: 80 }, { size: 4, moves: 120 }];
+    const boardEl = document.getElementById('board');
+    let level = 0;
+    let picture = 0;
+    let tiles;
+    let moves = 0;
+    let done = false;
+    const size = () => LEVELS[level].size;
+
+    const cursor = gridCursor({ cols: size, rows: size, onMove: draw, onPick: ({ x, y }) => move(y * size() + x) });
+
+    function start(n = level) {
+      level = n;
+      tiles = scramble(size(), LEVELS[level].moves);
+      moves = 0;
+      done = false;
+      message('');
+      draw();
+    }
+
+    function draw() {
+      const cell = 72 / size();
+      boardEl.style.setProperty('--cell', `${cell}vmin`);
+      boardEl.style.setProperty('--size', size());
+      boardEl.style.gridTemplateColumns = `repeat(${size()}, auto)`;
+      const [emoji, color] = PICTURES[picture];
+      boardEl.replaceChildren(...tiles.map((t, i) => {
+        const el = document.createElement('div');
+        el.className = `cell${t === 0 && !done ? ' hole' : ''}${i === cursor.y * size() + cursor.x ? ' cursor' : ''}`;
+        el.style.setProperty('--bg-tile', color);
+        if (t !== 0 || done) {
+          // Piece t shows the part of the picture that belongs at its home position.
+          const home = (t || size() * size()) - 1;
+          const pic = document.createElement('span');
+          pic.className = 'pic';
+          pic.textContent = emoji;
+          pic.style.left = `calc(${-(home % size())} * (var(--cell) + 0.6vmin) + var(--cell) * 0.1)`;
+          pic.style.top = `calc(${-Math.floor(home / size())} * (var(--cell) + 0.6vmin))`;
+          el.append(pic);
+          if (!done) el.append(Object.assign(document.createElement('span'), { className: 'num', textContent: t }));
+        }
+        el.addEventListener('click', () => move(i));
+        return el;
+      }));
+      document.getElementById('top').textContent = `Livello ${level + 1} · mosse ${moves}`;
+    }
+
+    function move(i) {
+      if (done) return start(Math.min(level + 1, LEVELS.length - 1));
+      const next = slide(tiles, size(), i);
+      if (!next) return beep(200, 0.05);
+      tiles = next;
+      moves++;
+      beep(520, 0.05);
+      if (isSolved(tiles)) {
+        done = true;
+        draw();
+        tune(WIN);
+        return setTimeout(() => message('🧩 Fatto! 🧩', `${moves} mosse · Invio per il prossimo`), 600);
+      }
+      draw();
+    }
+
+    addEventListener('keydown', e => {
+      if (['1', '2', '3'].includes(e.key)) start(Number(e.key) - 1);
+      if (e.key === 'i' || e.key === 'I') {
+        picture = (picture + 1) % PICTURES.length;
+        draw();
+      }
+    });
+
+    start(0);
+  </script>
+</body>
+</html>

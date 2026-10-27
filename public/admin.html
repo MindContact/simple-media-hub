@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Impostazioni</title>
+  <link rel="icon" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin">
+  <header class="admin-head">
+    <a class="back-link" href="/">◀ Torna all’app</a>
+    <h1>⚙️ Impostazioni</h1>
+    <button id="logout" class="btn ghost" hidden>Esci</button>
+  </header>
+
+  <form id="login" class="panel login" hidden>
+    <h2>Accesso genitori</h2>
+    <p id="login-note" class="note">Inserisci la password impostata nel file <code>.env</code> (<code>ADMIN_PASSWORD</code>).</p>
+    <input id="password" type="password" autocomplete="current-password" placeholder="Password" required>
+    <button class="btn primary">Entra</button>
+    <p id="login-error" class="error" hidden></p>
+  </form>
+
+  <form id="settings" hidden>
+    <section class="panel">
+      <h2>Generale</h2>
+      <label>Nome dell’app
+        <input id="app-name" maxlength="40" required>
+      </label>
+    </section>
+
+    <section class="panel">
+      <h2>Tema</h2>
+      <p class="note">Scegli un tema o un colore: il resto della palette viene calcolato da lì.</p>
+      <div id="presets" class="presets"></div>
+      <label class="inline">Colore di base
+        <input id="theme-color" type="color">
+      </label>
+      <div id="palette" class="palette"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Sfondo</h2>
+      <div id="backgrounds" class="choices"></div>
+      <div id="image-options" class="image-options">
+        <div class="row">
+          <label class="btn">📷 Carica immagine
+            <input id="image-file" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+          </label>
+          <button id="image-remove" type="button" class="btn ghost">Rimuovi immagine</button>
+          <span id="image-state" class="note"></span>
+        </div>
+        <label>Sfocatura <output id="blur-out"></output>
+          <input id="blur" type="range" min="0" max="30">
+        </label>
+        <label>Scurisci <output id="dim-out"></output>
+          <input id="dim" type="range" min="0" max="90">
+        </label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Data e meteo</h2>
+      <label>Fuso orario
+        <select id="timezone"></select>
+      </label>
+      <label>Luogo per il meteo
+        <span class="row">
+          <input id="place-query" placeholder="Cerca una città…" autocomplete="off">
+          <button id="place-search" type="button" class="btn">🔍 Cerca</button>
+        </span>
+      </label>
+      <ul id="places" class="places"></ul>
+      <div class="row">
+        <span id="place-state" class="note"></span>
+        <button id="place-clear" type="button" class="btn ghost">Togli il meteo</button>
+      </div>
+      <p class="note">Il server chiede il meteo a <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> ogni 15 minuti; la TV parla solo con l’hub.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Jellyfin</h2>
+      <p class="note">Lascia vuoto un campo per usare il valore del file <code>.env</code>.</p>
+      <label>Indirizzo del server
+        <input id="jf-url" placeholder="http://host:8096" autocomplete="off">
+      </label>
+      <label>Chiave API
+        <input id="jf-key" type="password" autocomplete="new-password">
+      </label>
+      <label class="check"><input id="jf-key-clear" type="checkbox"> Cancella la chiave salvata (torna a quella del <code>.env</code>)</label>
+      <label>Utente
+        <input id="jf-user" list="jf-users" autocomplete="off">
+        <datalist id="jf-users"></datalist>
+      </label>
+      <div class="row">
+        <button id="jf-test" type="button" class="btn">🔌 Prova connessione</button>
+        <span id="jf-result" class="note"></span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Giochi</h2>
+      <p class="note">Spunta quelli da mostrare, rinominali e ordinali con le frecce.</p>
+      <ol id="games" class="games"></ol>
+    </section>
+
+    <div class="save-bar">
+      <span id="save-state" class="note"></span>
+      <button class="btn primary">💾 Salva</button>
+    </div>
+  </form>
+
+  <div id="toast" hidden></div>
+
+  <script type="module" src="admin.js"></script>
+</body>
+</html>

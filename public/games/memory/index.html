@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Memory</title>
+  <link rel="stylesheet" href="../shell.css">
+  <style>
+    .cell { background: #ff6b9d; perspective: 400px; }
+    .cell > span { transition: opacity 0.2s ease; opacity: 0; }
+    .cell.open { background: #fff7e6; }
+    .cell.open > span { opacity: 1; }
+    .cell.found { background: #b8f5c8; }
+    .cell::after { content: '?'; position: absolute; font-size: 0.6em; color: #fff; font-weight: 900; }
+    .cell.open::after { content: none; }
+    .cell { position: relative; }
+  </style>
+</head>
+<body>
+  <p class="top" id="top"></p>
+  <div id="board" class="board"></div>
+  <p class="hint">Frecce e Invio per girare le carte · trova le coppie · 1 2 3 cambia livello</p>
+  <script src="../shell.js"></script>
+  <script type="module">
+    import { beep, gridCursor, message, shuffle, tune, WIN } from '../kit.js';
+
+    const ANIMALS = ['🐶', '🐱', '🐰', '🐻', '🐼', '🦁', '🐸', '🐵', '🐷', '🐮', '🦊', '🐔', '🐙', '🦄', '🐢'];
+    // Levels: columns × rows (always an even number of cards).
+    const LEVELS = [[4, 2], [4, 3], [6, 4]];
+    const board = document.getElementById('board');
+    let level = 0;
+    let cards = [];
+    let open = [];
+    let moves = 0;
+    let busy = false;
+    const cols = () => LEVELS[level][0];
+    const rows = () => LEVELS[level][1];
+
+    const cursor = gridCursor({ cols, rows, onMove: draw, onPick: ({ x, y }) => flip(y * cols() + x) });
+
+    function start(n) {
+      level = n;
+      const pairs = cols() * rows() / 2;
+      cards = shuffle([...shuffle(ANIMALS).slice(0, pairs)].flatMap(a => [a, a])).map(face => ({ face, open: false, found: false }));
+      open = [];
+      moves = 0;
+      cursor.x = 0;
+      cursor.y = 0;
+      message('');
+      draw();
+    }
+
+    function draw() {
+      const size = Math.min(80 / cols(), 66 / rows());
+      board.style.setProperty('--cell', `${size}vmin`);
+      board.style.gridTemplateColumns = `repeat(${cols()}, auto)`;
+      board.replaceChildren(...cards.map((c, i) => {
+        const cell = document.createElement('div');
+        cell.className = `cell${c.open || c.found ? ' open' : ''}${c.found ? ' found' : ''}${i === cursor.y * cols() + cursor.x ? ' cursor' : ''}`;
+        cell.append(Object.assign(document.createElement('span'), { textContent: c.face }));
+        cell.addEventListener('click', () => {
+          cursor.x = i % cols();
+          cursor.y = Math.floor(i / cols());
+          flip(i);
+        });
+        return cell;
+      }));
+      document.getElementById('top').textContent = `Livello ${level + 1} · mosse ${moves}`;
+    }
+
+    function flip(i) {
+      if (document.querySelector('.kit-message:not([hidden])')) return start(Math.min(level + 1, LEVELS.length - 1));
+      const card = cards[i];
+      if (busy || card.open || card.found) return;
+      card.open = true;
+      open.push(card);
+      beep(500 + open.length * 120);
+      if (open.length === 2) {
+        moves++;
+        const [a, b] = open;
+        if (a.face === b.face) {
+          a.found = b.found = true;
+          open = [];
+          setTimeout(() => beep(880, 0.15, 'triangle'), 120);
+          if (cards.every(c => c.found)) {
+            setTimeout(() => {
+              tune(WIN);
+              message('🎉 Bravo! 🎉', `${moves} mosse · premi Invio per il prossimo livello`);
+            }, 400);
+          }
+        } else {
+          busy = true;
+          setTimeout(() => {
+            a.open = b.open = false;
+            open = [];
+            busy = false;
+            draw();
+          }, 900);
+        }
+      }
+      draw();
+    }
+
+    addEventListener('keydown', e => {
+      if (['1', '2', '3'].includes(e.key)) start(Number(e.key) - 1);
+    });
+
+    start(0);
+  </script>
+</body>
+</html>

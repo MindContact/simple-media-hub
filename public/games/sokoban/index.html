@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Sokoban</title>
+  <link rel="stylesheet" href="../shell.css">
+  <style>
+    body { grid-template-rows: auto 1fr auto; gap: 2vh; padding: 3vh 0; box-sizing: border-box; }
+    h1 { margin: 0; font-size: 2.4rem; }
+    #board { display: grid; gap: 0; }
+    .cell { width: var(--size); height: var(--size); display: grid; place-items: center; font-size: calc(var(--size) * 0.72); line-height: 1; }
+    .floor { background: #f3e2b8; }
+    .wall { background: #8a4b2a; box-shadow: inset 0 0 0 3px #6b3519; border-radius: 4px; }
+    .goal::before { content: ''; position: absolute; width: calc(var(--size) * 0.36); height: calc(var(--size) * 0.36); border-radius: 50%; background: #f5a623; }
+    .goal { position: relative; }
+    .cell > span { position: relative; }
+    .box.done > span { filter: drop-shadow(0 0 8px #3f3); }
+    .hint { position: static; }
+    .win { animation: pop 0.6s ease; }
+    @keyframes pop { 50% { transform: scale(1.08); } }
+  </style>
+</head>
+<body>
+  <h1 id="title"></h1>
+  <div id="board"></div>
+  <p class="hint">Frecce per spingere le scatole sui pallini · R ricomincia · U annulla · N/P cambia livello</p>
+  <script src="../shell.js"></script>
+  <script type="module">
+    import { LEVELS, isSolved, parseLevel, step } from './sokoban.js';
+
+    const KEYS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
+    const board = document.getElementById('board');
+    const hint = document.querySelector('.hint');
+    const HINT = hint.textContent;
+    let level = 0;
+    let state;
+    let history;
+    let won = false;
+
+    function start(n) {
+      level = n;
+      state = parseLevel(LEVELS[level]);
+      history = [];
+      won = false;
+      hint.textContent = HINT;
+      draw();
+    }
+
+    function draw() {
+      const size = Math.floor(Math.min(innerWidth * 0.9 / state.width, innerHeight * 0.7 / state.height, 110));
+      board.style.setProperty('--size', `${size}px`);
+      board.style.gridTemplateColumns = `repeat(${state.width}, ${size}px)`;
+      document.getElementById('title').textContent = won ? '🎉 Bravo! 🎉' : `Livello ${level + 1} di ${LEVELS.length}`;
+      const cells = [];
+      LEVELS[level].forEach((row, y) => {
+        for (let x = 0; x < state.width; x++) {
+          const key = `${x},${y}`;
+          const cell = document.createElement('div');
+          const outside = (row[x] ?? ' ') === ' ' && !reachable.has(key);
+          cell.className = `cell ${state.walls.has(key) ? 'wall' : outside ? '' : 'floor'}`;
+          if (state.goals.has(key)) cell.classList.add('goal');
+          const thing = document.createElement('span');
+          if (state.boxes.has(key)) {
+            cell.classList.add('box');
+            if (state.goals.has(key)) cell.classList.add('done');
+            thing.textContent = '📦';
+          } else if (`${state.player}` === key) {
+            thing.textContent = '🐻';
+          }
+          cell.append(thing);
+          cells.push(cell);
+        }
+      });
+      board.replaceChildren(...cells);
+      board.classList.toggle('win', won);
+    }
+
+    // Floor cells the player can walk to, so the empty area outside the walls stays dark.
+    let reachable = new Set();
+    function flood() {
+      const s = parseLevel(LEVELS[level]);
+      reachable = new Set();
+      const todo = [s.player];
+      while (todo.length) {
+        const [x, y] = todo.pop();
+        const key = `${x},${y}`;
+        if (reachable.has(key) || s.walls.has(key) || x < 0 || y < 0 || x >= s.width || y >= s.height) continue;
+        reachable.add(key);
+        todo.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+      }
+    }
+
+    function load(n) {
+      level = n;
+      flood();
+      start(n);
+    }
+
+    addEventListener('keydown', e => {
+      if (won) {
+        if (e.key === ' ' || e.key === 'Enter' || KEYS[e.key]) load((level + 1) % LEVELS.length);
+        return;
+      }
+      if (KEYS[e.key]) {
+        const next = step(state, KEYS[e.key]);
+        if (!next) return;
+        history.push(state);
+        state = next;
+        won = isSolved(state);
+        draw();
+        if (won) hint.textContent = 'Premi Spazio per il prossimo livello';
+      } else if (e.key === 'n' || e.key === 'N' || e.key === 'PageDown') {
+        load((level + 1) % LEVELS.length);
+      } else if (e.key === 'p' || e.key === 'P' || e.key === 'PageUp') {
+        load((level - 1 + LEVELS.length) % LEVELS.length);
+      } else if (e.key === 'r' || e.key === 'R') {
+        start(level);
+      } else if ((e.key === 'u' || e.key === 'U' || e.key === 'z') && history.length) {
+        state = history.pop();
+        draw();
+      }
+    });
+    addEventListener('resize', draw);
+
+    load(0);
+  </script>
+</body>
+</html>

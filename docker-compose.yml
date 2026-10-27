@@ -1,0 +1,14 @@
+# docker compose up -d --build
+# Then open http://<host>:8099 and the ⚙️ admin page to finish the Jellyfin setup.
+services:
+  media-hub:
+    build: .
+    container_name: media-hub
+    restart: unless-stopped
+    ports:
+      - "8099:8080"
+    volumes:
+      # ADMIN_PASSWORD and, optionally, JELLYFIN_URL / JELLYFIN_API_KEY / JELLYFIN_USER.
+      - ./.env:/run/secrets/media-hub.env:ro
+      # Settings database and uploaded background picture.
+      - ./data:/data
